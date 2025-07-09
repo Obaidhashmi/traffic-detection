@@ -86,6 +86,8 @@ cd traffic-detection
 2. **Install required packages:**
 ```bash
 pip install streamlit opencv-python numpy ultralytics shapely
+pip uninstall opencv-python
+pip install opencv-python --upgrade --force-reinstall
 pip install -r requirments.txt
 ```
 
