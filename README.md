@@ -10,14 +10,8 @@ A Streamlit-based application for detecting and counting vehicles within user-de
 - **Traffic Congestion Analysis**: Customizable thresholds for different vehicle types
 - **Visual Feedback**: Color-coded status indicators (Green = Smooth, Red = Congested)
 - **Output Video Generation**: Saves processed video with detection results
-
-## 📋 Requirements
-### to install requirments.txt file 
-    
-    pip install -r requirments.txt
-    
-
-### Dependencies
+      
+## Dependencies
 ```
 # Core dependencies
 streamlit>=1.28.0
@@ -93,6 +87,7 @@ cd traffic-detection
 2. **Install required packages:**
 ```bash
 pip install streamlit opencv-python numpy ultralytics shapely
+pip install -r requirments.txt
 ```
 
 3. **Run the application:**
@@ -166,10 +161,9 @@ Stores ROI polygon coordinates and scale factor:
 ## 🎯 Detection Classes
 
 The app detects the following vehicle types:
-- **Cars** (Class ID: 2)
-- **Motorcycles** (Class ID: 3) 
-- **Buses** (Class ID: 5)
-- **Trucks** (Class ID: 7)
+- **Buse** (Class ID: 0) 
+- **Car** (Class ID: 1)
+- **Truck** (Class ID: 2)
 
 ## 📊 Output
 
@@ -235,4 +229,4 @@ For questions or support, please open an issue on GitHub or contact [your-email@
 
 ---
 
-**Made with ❤️ for traffic analysis and smart city applications**
+**Thank you for Your Time**
