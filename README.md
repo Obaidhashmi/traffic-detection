@@ -32,42 +32,6 @@ imageio-ffmpeg>=0.4.8
 # Optional: For better performance
 psutil>=5.9.0
 ```
-## Packages.txt
-
-### Dependencies
-```freeglut3-dev
-libgtk2.0-dev
-libgtk-3-dev
-libavcodec-dev
-libavformat-dev
-libswscale-dev
-libgstreamer1.0-dev
-libgstreamer-plugins-base1.0-dev
-libv4l-dev
-libxvidcore-dev
-libx264-dev
-libjpeg-dev
-libpng-dev
-libtiff-dev
-libatlas-base-dev
-gfortran
-libhdf5-dev
-libprotobuf-dev
-libgoogle-glog-dev
-libgflags-dev
-libgphoto2-dev
-libeigen3-dev
-libhdf5-serial-dev
-libxml2-dev
-libxslt1-dev
-libffi-dev
-libssl-dev
-python3-dev
-python3-numpy
-ffmpeg
-```
-
-
 
 ### YOLO Model
 - The app uses `yolo11m.pt` model file
