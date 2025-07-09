@@ -179,9 +179,12 @@ The processed video includes:
    - Check internet connection for model download
    - Ensure regions.json file exists
      
-### **Result demo video**
-      https://github.com/user-attachments/assets/3894b5e5-aac6-409e-b917-052d1f629d71
-).
+### **Result Demo Video**
+
+
+https://github.com/user-attachments/assets/3cdd18e2-5096-4a22-9b25-5e2ef34dda91
+
+
 ## 🤝 Contributing
 
 1. Fork the repository
