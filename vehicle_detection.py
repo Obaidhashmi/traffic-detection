@@ -1,8 +1,6 @@
 import cv2
 import json
 import numpy as np
-import tkinter as tk
-from tkinter import simpledialog
 from shapely.geometry import Point, Polygon
 from ultralytics import YOLO
 import os
@@ -13,6 +11,10 @@ MODEL_PATH = "yolo11m.pt"
 
 
 def load_regions():
+    if not os.path.exists(REGION_FILE):
+        st.error(f"Regions file {REGION_FILE} not found. Please create ROI regions first.")
+        return [], []
+
     with open(REGION_FILE, "r") as f:
         data = json.load(f)
     shapely_polys = [Polygon([(pt['x'], pt['y']) for pt in poly]) for poly in data['polygons']]
@@ -54,17 +56,20 @@ def draw_stats_box(frame, car_count, truck_count, bus_count, car_thresh, truck_t
 
 def detect_vehicles_in_roi(video_path, scale=1.0, thresholds=None):
     """
-    Detect vehicles in ROI with given thresholds
-
-    Args:
-        video_path: Path to input video
-        scale: Scale factor for video
-        thresholds: Dictionary containing threshold values
+    Detect vehicles in ROI with given thresholds - Cloud friendly version
     """
-
     # Load ROI regions
     rois, raw_polygons = load_regions()
-    model = YOLO(MODEL_PATH)
+    if not rois:
+        return
+
+    # Initialize YOLO model
+    try:
+        model = YOLO(MODEL_PATH)
+    except Exception as e:
+        st.error(f"Error loading YOLO model: {str(e)}")
+        return
+
     vehicle_classes = {2: 'car', 3: 'motorcycle', 5: 'bus', 7: 'truck'}
 
     # Use provided thresholds or get them from Streamlit
@@ -74,15 +79,14 @@ def detect_vehicles_in_roi(video_path, scale=1.0, thresholds=None):
         bus_thresh = thresholds['bus_thresh']
         overall_thresh = thresholds['overall_thresh']
     else:
-        # Fallback to default values if no thresholds provided
         car_thresh, truck_thresh, bus_thresh, overall_thresh = 5, 3, 2, 10
 
-    print(
+    st.write(
         f"Using thresholds - Cars: {car_thresh}, Trucks: {truck_thresh}, Buses: {bus_thresh}, Overall: {overall_thresh}")
 
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
-        print(f"ERROR: Unable to open video: {video_path}")
+        st.error(f"ERROR: Unable to open video: {video_path}")
         return
 
     fps = cap.get(cv2.CAP_PROP_FPS)
@@ -90,88 +94,114 @@ def detect_vehicles_in_roi(video_path, scale=1.0, thresholds=None):
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT) * scale)
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     output_path = os.path.join(os.path.dirname(video_path), "output_result.mp4")
-    out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+
+    # Create output video writer
+    try:
+        out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+    except Exception as e:
+        st.error(f"Error creating output video: {str(e)}")
+        return
 
     frame_skip = 4
     frame_counter = 0
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
-    print("Starting vehicle detection... Press 'q' to quit early.")
+    # Create progress bar
+    progress_bar = st.progress(0)
+    status_text = st.empty()
 
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
+    try:
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
 
-        frame_counter += 1
-        if frame_counter % frame_skip != 0:
-            continue
-
-        if scale != 1.0:
-            frame = cv2.resize(frame, (width, height))
-
-        results = model(frame)[0]
-        boxes = results.boxes.xyxy.cpu().numpy()
-        class_ids = results.boxes.cls.cpu().numpy().astype(int)
-
-        car_count = truck_count = bus_count = 0
-
-        for box, cls_id in zip(boxes, class_ids):
-            if cls_id not in vehicle_classes:
+            frame_counter += 1
+            if frame_counter % frame_skip != 0:
                 continue
-            x1, y1, x2, y2 = map(int, box)
-            cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
-            pt = Point(cx, cy)
 
-            if any(poly.contains(pt) for poly in rois):
-                label = vehicle_classes[cls_id]
-                if label == 'car':
-                    car_count += 1
-                elif label == 'truck':
-                    truck_count += 1
-                elif label == 'bus':
-                    bus_count += 1
+            # Update progress
+            progress = min(frame_counter / total_frames, 1.0)
+            progress_bar.progress(progress)
+            status_text.text(f"Processing frame {frame_counter}/{total_frames}")
 
-        overall_count = car_count + truck_count + bus_count
-        status_color = (0, 255, 0)
-        status_text = "Smooth"
-        if (car_count > car_thresh or truck_count > truck_thresh or
-                bus_count > bus_thresh or overall_count > overall_thresh):
-            status_color = (0, 0, 255)
-            status_text = "Congested"
+            if scale != 1.0:
+                frame = cv2.resize(frame, (width, height))
 
-        overlay = frame.copy()
-        alpha = 0.2
-        for poly in raw_polygons:
-            pts = np.array([[pt['x'], pt['y']] for pt in poly], np.int32).reshape((-1, 1, 2))
-            cv2.fillPoly(overlay, [pts], status_color)
-        frame = cv2.addWeighted(overlay, alpha, frame, 1 - alpha, 0)
+            # Run YOLO detection
+            results = model(frame)[0]
+            boxes = results.boxes.xyxy.cpu().numpy()
+            class_ids = results.boxes.cls.cpu().numpy().astype(int)
 
-        for poly in raw_polygons:
-            pts = np.array([[pt['x'], pt['y']] for pt in poly], np.int32).reshape((-1, 1, 2))
-            cv2.polylines(frame, [pts], True, status_color, 2)
+            car_count = truck_count = bus_count = 0
 
-        frame = draw_stats_box(frame, car_count, truck_count, bus_count,
-                               car_thresh, truck_thresh, bus_thresh,
-                               overall_count, overall_thresh,
-                               status_text, status_color)
+            # Count vehicles in ROI
+            for box, cls_id in zip(boxes, class_ids):
+                if cls_id not in vehicle_classes:
+                    continue
+                x1, y1, x2, y2 = map(int, box)
+                cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
+                pt = Point(cx, cy)
 
-        out.write(frame)  # Save frame to file
-        cv2.imshow("ROI Vehicle Detection", frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+                if any(poly.contains(pt) for poly in rois):
+                    label = vehicle_classes[cls_id]
+                    if label == 'car':
+                        car_count += 1
+                    elif label == 'truck':
+                        truck_count += 1
+                    elif label == 'bus':
+                        bus_count += 1
 
-    cap.release()
-    out.release()
-    cv2.destroyAllWindows()
-    print(f"[+] Saved output video to: {output_path}")
+            # Determine status
+            overall_count = car_count + truck_count + bus_count
+            status_color = (0, 255, 0)
+            status_text_label = "Smooth"
+            if (car_count > car_thresh or truck_count > truck_thresh or
+                    bus_count > bus_thresh or overall_count > overall_thresh):
+                status_color = (0, 0, 255)
+                status_text_label = "Congested"
+
+            # Draw ROI overlay
+            overlay = frame.copy()
+            alpha = 0.2
+            for poly in raw_polygons:
+                pts = np.array([[pt['x'], pt['y']] for pt in poly], np.int32).reshape((-1, 1, 2))
+                cv2.fillPoly(overlay, [pts], status_color)
+            frame = cv2.addWeighted(overlay, alpha, frame, 1 - alpha, 0)
+
+            # Draw ROI boundaries
+            for poly in raw_polygons:
+                pts = np.array([[pt['x'], pt['y']] for pt in poly], np.int32).reshape((-1, 1, 2))
+                cv2.polylines(frame, [pts], True, status_color, 2)
+
+            # Add stats box
+            frame = draw_stats_box(frame, car_count, truck_count, bus_count,
+                                   car_thresh, truck_thresh, bus_thresh,
+                                   overall_count, overall_thresh,
+                                   status_text_label, status_color)
+
+            out.write(frame)
+
+    except Exception as e:
+        st.error(f"Error during detection: {str(e)}")
+    finally:
+        cap.release()
+        out.release()
+        progress_bar.progress(1.0)
+        status_text.text("Detection completed!")
+
+    st.success(f"✅ Output video saved to: {output_path}")
+
+    # Offer download option
+    if os.path.exists(output_path):
+        with open(output_path, "rb") as f:
+            st.download_button(
+                label="📥 Download Result Video",
+                data=f.read(),
+                file_name="detection_result.mp4",
+                mime="video/mp4"
+            )
 
 
 if __name__ == '__main__':
-    root = tk.Tk()
-    root.withdraw()
-    video_path = tk.filedialog.askopenfilename(
-        title="Select Video File",
-        filetypes=[("Video Files", "*.mp4;*.avi;*.mov;*.mkv"), ("All Files", "*.*")]
-    )
-    if video_path:
-        detect_vehicles_in_roi(video_path)
+    st.error("This module should be imported, not run directly. Please run roi_selector.py instead.")
