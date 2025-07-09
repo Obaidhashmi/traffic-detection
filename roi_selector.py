@@ -1,12 +1,10 @@
 import cv2
 import json
 import numpy as np
-import tkinter as tk
-from tkinter import filedialog
 import os
 from main_fixed import upload_and_save_video
 import streamlit as st
-from vehicle_detection import detect_vehicles_in_roi, get_thresholds_streamlit
+from vehicle_detection import detect_vehicles_in_roi
 
 REGION_FILE = "regions.json"
 tmp_points = []
@@ -53,53 +51,74 @@ def mouse_callback(event, x, y, flags, param):
 
 
 def draw_roi_regions(VIDEO_PATH):
-    """Function to handle ROI drawing"""
+    """Function to handle ROI drawing - Modified for cloud deployment"""
     global scale
+
+    # Show warning about ROI drawing in cloud environment
+    st.warning("⚠️ ROI Drawing requires a local environment with display capabilities. "
+               "This feature may not work on Streamlit Cloud.")
+
     cap = cv2.VideoCapture(VIDEO_PATH)
     if not cap.isOpened():
-        print("ERROR: Could not open video.")
+        st.error("ERROR: Could not open video.")
         return False
 
     ret, frame = cap.read()
     cap.release()
     if not ret:
-        print("ERROR: Could not read video frame.")
+        st.error("ERROR: Could not read video frame.")
         return False
 
-    # Determine scaling if video is too large
-    max_width = 1280
-    max_height = 720
-    height, width = frame.shape[:2]
-    scale_x = max_width / width
-    scale_y = max_height / height
-    scale = min(1.0, scale_x, scale_y)
+    # Show the first frame in Streamlit
+    st.image(frame, caption="First frame of video", channels="BGR")
 
-    if scale < 1.0:
-        frame = cv2.resize(frame, (int(width * scale), int(height * scale)))
+    # For cloud deployment, provide alternative method
+    st.info("💡 **Alternative for Cloud Deployment:**\n"
+            "1. Download and run this app locally for ROI drawing\n"
+            "2. Or manually create regions.json with your ROI coordinates\n"
+            "3. Upload the regions.json file to your project")
 
-    window_name = "Draw Regions (L-click add, R-click finish, U=undo, S=save, Q=quit)"
-    cv2.namedWindow(window_name)
-    cv2.setMouseCallback(window_name, mouse_callback)
+    # Try to use cv2.namedWindow (will fail in cloud but work locally)
+    try:
+        # Determine scaling if video is too large
+        max_width = 1280
+        max_height = 720
+        height, width = frame.shape[:2]
+        scale_x = max_width / width
+        scale_y = max_height / height
+        scale = min(1.0, scale_x, scale_y)
 
-    while True:
-        display_frame = frame.copy()
-        draw_overlays(display_frame)
-        cv2.imshow(window_name, display_frame)
-        key = cv2.waitKey(10) & 0xFF
+        if scale < 1.0:
+            frame = cv2.resize(frame, (int(width * scale), int(height * scale)))
 
-        if key == ord('u'):
-            if tmp_points:
-                tmp_points.pop()
-        elif key == ord('s'):
-            if tmp_points and len(tmp_points) >= 3:
-                polygons.append(tmp_points.copy())
-            save_regions()
-            cv2.destroyAllWindows()
-            return True  # ROI saved successfully
-        elif key == ord('q'):
-            print("Exiting without saving.")
-            cv2.destroyAllWindows()
-            return False
+        window_name = "Draw Regions (L-click add, R-click finish, U=undo, S=save, Q=quit)"
+        cv2.namedWindow(window_name)
+        cv2.setMouseCallback(window_name, mouse_callback)
+
+        while True:
+            display_frame = frame.copy()
+            draw_overlays(display_frame)
+            cv2.imshow(window_name, display_frame)
+            key = cv2.waitKey(10) & 0xFF
+
+            if key == ord('u'):
+                if tmp_points:
+                    tmp_points.pop()
+            elif key == ord('s'):
+                if tmp_points and len(tmp_points) >= 3:
+                    polygons.append(tmp_points.copy())
+                save_regions()
+                cv2.destroyAllWindows()
+                return True  # ROI saved successfully
+            elif key == ord('q'):
+                print("Exiting without saving.")
+                cv2.destroyAllWindows()
+                return False
+
+    except Exception as e:
+        st.error(f"ROI drawing not available in this environment: {str(e)}")
+        st.info("Please run locally or provide a pre-made regions.json file")
+        return False
 
     return False
 
@@ -114,20 +133,47 @@ def main():
     if VIDEO_PATH is None:
         return
 
-    # Step 2: Draw ROI regions
-    if st.button("Select/Draw ROI"):
-        # Initialize session state for ROI completion
-        if 'roi_completed' not in st.session_state:
+    # Check if regions.json already exists
+    if os.path.exists(REGION_FILE):
+        st.success("✅ ROI regions file found!")
+        st.session_state.roi_completed = True
+
+        # Show option to redraw ROI
+        if st.button("🔄 Redraw ROI Regions"):
             st.session_state.roi_completed = False
+    else:
+        st.session_state.roi_completed = False
 
-        # Draw ROI in separate window
-        roi_success = draw_roi_regions(VIDEO_PATH)
+    # Step 2: Draw ROI regions or upload regions file
+    if not st.session_state.get('roi_completed', False):
+        st.markdown("### Step 1: Define ROI Regions")
 
-        if roi_success:
-            st.session_state.roi_completed = True
-            st.success("✅ ROI regions saved successfully!")
-        else:
-            st.error("❌ ROI selection cancelled or failed.")
+        # Option 1: Draw ROI (for local use)
+        if st.button("🎨 Draw ROI Regions (Local Only)"):
+            roi_success = draw_roi_regions(VIDEO_PATH)
+            if roi_success:
+                st.session_state.roi_completed = True
+                st.success("✅ ROI regions saved successfully!")
+            else:
+                st.error("❌ ROI selection failed or cancelled.")
+
+        # Option 2: Upload regions.json file
+        st.markdown("**OR**")
+        uploaded_regions = st.file_uploader(
+            "Upload regions.json file",
+            type=['json'],
+            help="Upload a pre-made regions.json file with ROI coordinates"
+        )
+
+        if uploaded_regions is not None:
+            try:
+                # Save uploaded regions file
+                with open(REGION_FILE, "wb") as f:
+                    f.write(uploaded_regions.read())
+                st.success("✅ Regions file uploaded successfully!")
+                st.session_state.roi_completed = True
+            except Exception as e:
+                st.error(f"Error uploading regions file: {str(e)}")
 
     # Step 3: Get thresholds (only show if ROI is completed)
     if st.session_state.get('roi_completed', False):
@@ -135,6 +181,7 @@ def main():
         st.markdown("### Step 2: Set Detection Thresholds")
 
         # Get thresholds from user
+        from vehicle_detection import get_thresholds_streamlit
         car_thresh, truck_thresh, bus_thresh, overall_thresh = get_thresholds_streamlit(key_prefix='main_detection')
 
         # Step 4: Start detection
@@ -150,8 +197,11 @@ def main():
             }
 
             # Call detection function
-            detect_vehicles_in_roi(VIDEO_PATH, scale, st.session_state.thresholds)
-            st.success("✅ Detection completed! Check the output video file.")
+            try:
+                detect_vehicles_in_roi(VIDEO_PATH, scale, st.session_state.thresholds)
+                st.success("✅ Detection completed! Check the output video file.")
+            except Exception as e:
+                st.error(f"Detection failed: {str(e)}")
 
 
 if __name__ == '__main__':
