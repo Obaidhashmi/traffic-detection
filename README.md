@@ -71,10 +71,9 @@ ffmpeg
 
 ### YOLO Model
 - The app uses `yolo11m.pt` model file
-- Model will be automatically downloaded on first run
 
 ## 🚀 Installation
-
+### Open pycharm or VS code command prompt
 1. **Clone the repository:**
 ```bash
 git clone https://github.com/Obaidhashmi/traffic-detection.git
