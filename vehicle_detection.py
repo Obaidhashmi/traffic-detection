@@ -36,21 +36,39 @@ def get_thresholds_streamlit(key_prefix="default"):
 
 def draw_stats_box(frame, car_count, truck_count, bus_count, car_thresh, truck_thresh, bus_thresh, overall_count,
                    overall_thresh, status_text, status_color):
-    box_x, box_y, box_w, box_h = 10, 10, 340, 160
+    """Draw bold and clean stats box for 640x360 video"""
+    import cv2
+
+    height, width = frame.shape[:2]
+
+    # Optimized box size for 640x360 resolution
+    box_w = 240
+    box_h = 130
+    box_x, box_y = 10, 10
+
+    # Draw semi-transparent background
     overlay = frame.copy()
     cv2.rectangle(overlay, (box_x, box_y), (box_x + box_w, box_y + box_h), (50, 50, 50), -1)
     frame = cv2.addWeighted(overlay, 0.4, frame, 0.6, 0)
 
-    cv2.putText(frame, f"Cars: {car_count} / {car_thresh}", (box_x + 10, box_y + 30),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
-    cv2.putText(frame, f"Trucks: {truck_count} / {truck_thresh}", (box_x + 10, box_y + 55),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
-    cv2.putText(frame, f"Buses: {bus_count} / {bus_thresh}", (box_x + 10, box_y + 80),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
-    cv2.putText(frame, f"Total: {overall_count} / {overall_thresh}", (box_x + 10, box_y + 105),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
-    cv2.putText(frame, f"Status: {status_text}", (box_x + 10, box_y + 140),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.8, status_color, 2)
+    # Font and layout settings
+    font = cv2.FONT_HERSHEY_COMPLEX  # Clean and smooth font
+    font_scale = 0.5
+    font_thickness = 1  # Bold text
+    line_spacing = int(20 * font_scale) + 10
+
+    # Draw each line of stats
+    cv2.putText(frame, f"Cars: {car_count} / {car_thresh}", (box_x + 10, box_y + line_spacing),
+                font, font_scale, (0, 255, 255), font_thickness)
+    cv2.putText(frame, f"Trucks: {truck_count} / {truck_thresh}", (box_x + 10, box_y + 2 * line_spacing),
+                font, font_scale, (0, 255, 255), font_thickness)
+    cv2.putText(frame, f"Buses: {bus_count} / {bus_thresh}", (box_x + 10, box_y + 3 * line_spacing),
+                font, font_scale, (0, 255, 255), font_thickness)
+    cv2.putText(frame, f"Total: {overall_count} / {overall_thresh}", (box_x + 10, box_y + 4 * line_spacing),
+                font, font_scale, (0, 255, 255), font_thickness)
+    cv2.putText(frame, f"Status: {status_text}", (box_x + 10, box_y + 5 * line_spacing),
+                font, font_scale * 1.1, status_color, font_thickness)
+
     return frame
 
 
