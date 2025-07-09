@@ -83,10 +83,10 @@ ffmpeg
 
 1. **Clone the repository:**
 ```bash
-git clone https://github.com/yourusername/traffic-detection.git
+git clone https://https://github.com/Obaidhashmi/traffic-detection.git
 cd traffic-detection
 ```
-1.2. **For selecting the main file from the folder **
+1.2. **For selecting the main file from the folder**
 ```
 cd traffic-detection
 ```
