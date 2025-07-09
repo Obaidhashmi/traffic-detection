@@ -13,7 +13,7 @@ A Streamlit-based application for detecting and counting vehicles within user-de
 
 ## 📋 Requirements
 ### to install requirments.txt file 
-    '''
+    
     pip install -r requirments.txt
     
 
@@ -83,8 +83,12 @@ ffmpeg
 
 1. **Clone the repository:**
 ```bash
-git clone https://github.com/yourusername/roi-vehicle-detection.git
-cd roi-vehicle-detection
+git clone https://github.com/yourusername/traffic-detection.git
+cd traffic-detection
+```
+1.2. **For selecting the main file from the folder **
+```
+cd traffic-detection
 ```
 
 2. **Install required packages:**
