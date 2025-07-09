@@ -12,18 +12,68 @@ A Streamlit-based application for detecting and counting vehicles within user-de
 - **Output Video Generation**: Saves processed video with detection results
 
 ## 📋 Requirements
+### to install requirments.txt file 
+    '''
+    pip install -r requirments.txt
+    
 
 ### Dependencies
 ```
-streamlit
-opencv-python
-numpy
-ultralytics
-shapely
-tkinter
-json
-os
+# Core dependencies
+streamlit>=1.28.0
+opencv-python-headless==4.8.1.78
+numpy>=1.24.0
+ultralytics>=8.0.0
+shapely>=2.0.0
+
+# Additional dependencies that might be needed
+Pillow>=9.0.0
+torch>=2.0.0
+torchvision>=0.15.0
+
+# For video processing
+imageio>=2.25.0
+imageio-ffmpeg>=0.4.8
+
+# Optional: For better performance
+psutil>=5.9.0
 ```
+## Packages.txt
+
+### Dependencies
+```freeglut3-dev
+libgtk2.0-dev
+libgtk-3-dev
+libavcodec-dev
+libavformat-dev
+libswscale-dev
+libgstreamer1.0-dev
+libgstreamer-plugins-base1.0-dev
+libv4l-dev
+libxvidcore-dev
+libx264-dev
+libjpeg-dev
+libpng-dev
+libtiff-dev
+libatlas-base-dev
+gfortran
+libhdf5-dev
+libprotobuf-dev
+libgoogle-glog-dev
+libgflags-dev
+libgphoto2-dev
+libeigen3-dev
+libhdf5-serial-dev
+libxml2-dev
+libxslt1-dev
+libffi-dev
+libssl-dev
+python3-dev
+python3-numpy
+ffmpeg
+```
+
+
 
 ### YOLO Model
 - The app uses `yolo11m.pt` model file
