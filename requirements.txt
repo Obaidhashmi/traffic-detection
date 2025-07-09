@@ -1,5 +1,7 @@
+
 ultralytics
 opencv-python
 numpy
-thinkter
 shapely
+streamlit
+
