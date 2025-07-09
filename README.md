@@ -82,11 +82,22 @@ git clone https://github.com/Obaidhashmi/traffic-detection.git
 ```
 cd traffic-detection
 ```
-
-2. **Install required packages:**
+2.1: **Create Virtual Environment**
+### Create virtual environment
+```
+python -m venv traffic_detection_env
+```
+# Activate virtual environment
+# On Windows:
+```
+traffic_detection_env\Scripts\activate
+```
+# On macOS/Linux:
+```
+source traffic_detection_env/bin/activate
+```
+2.2. **Install required packages:**
 ```bash
-pip install streamlit numpy ultralytics shapely
-pip install opencv-python --upgrade --force-reinstall
 pip install -r requirments.txt
 ```
 
